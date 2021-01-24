@@ -65,6 +65,8 @@ class VQEmbeddingEMA(nn.Module):
 		self.decay = decay
 		self.epsilon = epsilon
 
+		self.instance_norm = nn.InstanceNorm1d(embedding_dim)
+
 		init_bound = 1 / n_embeddings
 		embedding = torch.Tensor(n_embeddings, embedding_dim)
 		embedding.uniform_(-init_bound, init_bound)
@@ -87,8 +89,16 @@ class VQEmbeddingEMA(nn.Module):
 		return quantized, indices.view(x.size(0), x.size(1))
 
 	def forward(self, x):
+
+		z_enc = x
+
+		# instance norm to extract contents information from encoder output
+		x = self.instance_norm(z_enc)
+
 		M, D = self.embedding.size()
 		x_flat = x.detach().reshape(-1, D)
+		
+		# instance norm to extract contents information from encoder output
 
 		distances = torch.addmm(torch.sum(self.embedding ** 2, dim=1) +
                                 torch.sum(x_flat ** 2, dim=1, keepdim=True),
@@ -110,9 +120,9 @@ class VQEmbeddingEMA(nn.Module):
 			self.ema_weight = self.decay * self.ema_weight + (1 - self.decay) * dw
 			self.embedding = self.ema_weight / self.ema_count.unsqueeze(-1)
 
-		commitment_loss = F.mse_loss(x, quantized.detach())
+		commitment_loss = F.mse_loss(z_enc, quantized.detach())
 
-		quantized = x + (quantized - x).detach()
+		quantized = z_enc + (quantized - z_enc).detach()
 
 		avg_probs = torch.mean(encodings, dim=0)
 		perplexity = torch.exp(-torch.sum(avg_probs * torch.log(avg_probs + 1e-10)))

@@ -37,8 +37,8 @@ def evaluate(model, vocoder, eval_data_loader, criterion, global_step, writer=No
 			writer.add_scalars(mode="eval_reconstruction_loss", global_step=global_step, loss=eval_recon_loss / len(eval_data_loader))
 			writer.add_scalars(mode="eval_commitment_loss", global_step=global_step, loss=eval_commitment_loss / len(eval_data_loader))
 			writer.add_scalars(mode="eval_perplexity", global_step=global_step, loss=eval_perplexity / len(eval_data_loader))
-			writer.add_scalars(mode="eval_total", global_step=global_step, loss=eval_loss / len(eval_data_loader))
-			writer.add_mel_figures(mode="eval: mel, mel_hat, code, style", global_step=global_step, mel=mel, mel_hat=mel_hat, mel_code=mel_code, mel_style=mel_style)
+			writer.add_scalars(mode="eval_total_loss", global_step=global_step, loss=eval_loss / len(eval_data_loader))
+			writer.add_mel_figures(mode="eval-mels_", global_step=global_step, mel=mel, mel_hat=mel_hat, mel_code=mel_code, mel_style=mel_style)
 
 
 

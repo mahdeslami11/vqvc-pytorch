@@ -56,10 +56,10 @@ def train(train_data_loader, eval_data_loader, model, reconstruction_loss, vocod
 				model.train()
 
 			if args.log_tensorboard:
-				writer.add_scalars(mode="recon_loss", global_step=global_step, loss=recon_loss)
-				writer.add_scalars(mode="commitment_loss", global_step=global_step, loss=commitment_loss)
-				writer.add_scalars(mode="vq_perflexity", global_step=global_step, loss=perplexity)
-				writer.add_scalars(mode="total_loss", global_step=global_step, loss=loss)
+				writer.add_scalars(mode="train_recon_loss", global_step=global_step, loss=recon_loss)
+				writer.add_scalars(mode="train_commitment_loss", global_step=global_step, loss=commitment_loss)
+				writer.add_scalars(mode="train_perplexity", global_step=global_step, loss=perplexity)
+				writer.add_scalars(mode="train_total_loss", global_step=global_step, loss=loss)
 
 			global_step += 1
 

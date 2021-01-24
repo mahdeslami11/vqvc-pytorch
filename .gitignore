@@ -1,3 +1,11 @@
+# VQVC ignore list
+preprocessed/
+logs/
+ckpts/
+eval_results/
+results/
+vocoder/vocgan/pretrained_models
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

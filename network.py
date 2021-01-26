@@ -23,10 +23,6 @@ class Encoder(nn.Module):
 						padding='same', activation_fn=nn.ReLU, ln=True),
 			mm.Conv1dResBlock(channels, channels, kernel_size, 
 						padding='same', activation_fn=nn.ReLU, ln=True),
-			mm.Conv1dResBlock(channels, channels, kernel_size, 
-						padding='same', activation_fn=nn.ReLU, ln=True),
-			mm.Conv1dResBlock(channels, channels, kernel_size, 
-						padding='same', activation_fn=nn.ReLU, ln=True),
 			
 			mm.Linear(channels, z_dim, bias=False)
 		)
@@ -120,9 +116,9 @@ class VQEmbeddingEMA(nn.Module):
 			self.ema_weight = self.decay * self.ema_weight + (1 - self.decay) * dw
 			self.embedding = self.ema_weight / self.ema_count.unsqueeze(-1)
 
-		commitment_loss = F.mse_loss(z_enc, quantized.detach())
+		commitment_loss = F.mse_loss(x, quantized.detach())
 
-		quantized = z_enc + (quantized - z_enc).detach()
+		quantized = x + (quantized - x).detach()
 
 		avg_probs = torch.mean(encodings, dim=0)
 		perplexity = torch.exp(-torch.sum(avg_probs * torch.log(avg_probs + 1e-10)))
@@ -153,10 +149,6 @@ class Decoder(nn.Module):
 					mm.Conv1dResBlock(channels, channels, 
 							  kernel_size, activation_fn=nn.ReLU, ln=True),
 					mm.Conv1dResBlock(channels, channels, 
-							  kernel_size, activation_fn=nn.ReLU, ln=True),
-					mm.Conv1dResBlock(channels, channels, 
-							  kernel_size, activation_fn=nn.ReLU, ln=True),
-					mm.Conv1dResBlock(channels, channels, 
 							  kernel_size, activation_fn=nn.ReLU, ln=True))
 
 		self.project_to_mel_dim = mm.Linear(channels, mel_channels, bias=False)
@@ -169,8 +161,9 @@ class Decoder(nn.Module):
 
 		# expectation over timestep
 		normed_code = code / (torch.norm(code, dim=2, keepdim=True) + self.norm_epsilon)
+
 		speaker_emb = torch.mean(speaker_emb, dim=1, keepdim=True)
-		speaker_emb = speaker_emb / (torch.norm(speaker_emb, dim=1, keepdim=True) + self.norm_epsilon)/self.speaker_emb_discount_factor
+		speaker_emb = speaker_emb / (torch.norm(speaker_emb, dim=2, keepdim=True) + self.norm_epsilon)/self.speaker_emb_discount_factor
 
 		# 1e-4: avoid ZeroDivdedException, 3: intensity of speaker_embedding
 		out = self.conv_layer(normed_code + speaker_emb)
@@ -184,9 +177,9 @@ class Decoder(nn.Module):
 		code = z_quan
 
 		normed_code = code / (torch.norm(code, dim=2, keepdim=True) + self.norm_epsilon)
-		speaker_emb = torch.mean(speaker_emb, dim=1, keepdim=True)
 
-		speaker_emb = speaker_emb / (torch.norm(speaker_emb, dim=1, keepdim=True) + self.norm_epsilon)/self.speaker_emb_discount_factor
+		speaker_emb = torch.mean(speaker_emb, dim=1, keepdim=True)
+		speaker_emb = speaker_emb / (torch.norm(speaker_emb, dim=2, keepdim=True) + self.norm_epsilon)/self.speaker_emb_discount_factor
 
 		# recon mel_hat 
 		out = self.conv_layer(normed_code + speaker_emb)
@@ -208,12 +201,12 @@ class Decoder(nn.Module):
 
 	def convert(self, src_contents, z_ref_enc, ref_contents):
 		
-		ref_speaker_emb = z_ref_enc - ref_contents
 
 		normed_src_code = src_contents / (torch.norm(src_contents, dim=2, keepdim=True) + self.norm_epsilon)
-		ref_speaker_emb = torch.mean(ref_speaker_emb, dim=1, keepdim=True)
 
-		ref_speaker_emb = ref_speaker_emb / (torch.norm(ref_speaker_emb, dim=1, keepdim=True) + self.norm_epsilon)/self.speaker_emb_discount_factor
+		ref_speaker_emb = z_ref_enc - ref_contents
+		ref_speaker_emb = torch.mean(ref_speaker_emb, dim=1, keepdim=True)
+		ref_speaker_emb = ref_speaker_emb / (torch.norm(ref_speaker_emb, dim=2, keepdim=True) + self.norm_epsilon)/self.speaker_emb_discount_factor
 
 		# converted mel_hat 
 		out = self.conv_layer(normed_src_code + ref_speaker_emb)
@@ -226,7 +219,7 @@ class Decoder(nn.Module):
 		mel_src_code = self.project_to_mel_dim(out)
 
 		# only ref-style
-		out = self.conv_layer(ref_speaker_emb)
+		out = self.conv_layer(z_ref_enc - ref_contents)
 		out = self.res_blocks(out)
 		mel_ref_style = self.project_to_mel_dim(out)
 

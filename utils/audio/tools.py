@@ -27,16 +27,21 @@ _stft = stft.TacotronSTFT(
 
 def load_wav_to_torch(full_path):
     sampling_rate, data = read(full_path)
-    return torch.FloatTensor(data.astype(np.float32)), sampling_rate
+    return data.astype(np.float32), sampling_rate
 
 
-def get_mel(filename):
+def get_mel(filename, trim_silence=False):
     audio, sampling_rate = load_wav_to_torch(filename)
 
     if sampling_rate != _stft.sampling_rate:
         raise ValueError("{} SR doesn't match target SR {}".format(
             sampling_rate, _stft.sampling_rate))
     audio_norm = audio / args.max_wav_value
+
+    if trim_silence:
+        audio_norm, _ = librosa.effects.trim(audio_norm)
+
+    audio_norm = torch.FloatTensor(audio_norm)
     audio_norm = audio_norm.unsqueeze(0)
     audio_norm = torch.autograd.Variable(audio_norm, requires_grad=False)
     melspec, energy  = _stft.mel_spectrogram(audio_norm)

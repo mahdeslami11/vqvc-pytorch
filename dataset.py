@@ -21,10 +21,10 @@ class SpeechDataset(dset.Dataset):
 			mem_mode (in config.py): mags cannot be loaded onto the memory due to the large # of features
 	"""
 
-	def __init__(self, mem_mode, meta_dir, sample_frame, dataset_name):
+	def __init__(self, mem_mode, meta_dir, dataset_name):
+
 		self.__mel_file_paths = self.__get_mel_filename(meta_dir=meta_dir)
 		self.__label_dictionary = get_label_dictionary(dataset_name) 
-		self.sample_frame = sample_frame
 
 		if args.mem_mode:
 			self.__mels = list(map(lambda mel_file_path: torch.tensor(np.load(mel_file_path)), self.__mel_file_paths))
@@ -34,13 +34,13 @@ class SpeechDataset(dset.Dataset):
 
 	def __getitem__(self, index):
 		mel = self.__mels[index] if args.mem_mode else torch.tensor(np.load(self.__mel_file_paths[index]))
-		T_mel, _ = mel.shape
-		index = np.random.randint(T_mel - self.sample_frame + 1)
 
 		# many-to-one mapping
 		#labels = self.__get_label_index(self.__mel_file_paths[index], self.__label_dictionary)
 
-		return mel[index: index+self.sample_frame], 0
+		# add torch cat
+
+		return mel, 0
 
 	def __get_mel_filename(self, meta_dir):	
 		with open(meta_dir, "r") as f:
@@ -55,6 +55,19 @@ class SpeechDataset(dset.Dataset):
 
 
 
+def collate_fn(data):
+	data.sort(key=lambda x: len(x[0]), reverse=False)
+	mels = zip(*data)
 
+	mel_lengths = [len(mel) for mel in mels]
+	length_thresh = mel_lengths[0]
 
+	print("\nSTART!")
+	for idx in range(len(mels)):
+		print("mel before preprocess: {} - {}".format(idx, mels[index].shape))
+		mels[idx] = mels[idx][:length_thresh]
+		print("mel after preprocess: {} - {}".format(idx, mels[idex].shape))
+	print("END!\n")
 
+	print(mels.shape)
+	return mels

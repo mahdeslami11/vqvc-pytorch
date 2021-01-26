@@ -1,4 +1,3 @@
-
 import sys
 import torch
 from tqdm import tqdm
@@ -46,7 +45,7 @@ def main(DEVICE):
 
 	load_checkpoint(args.model_checkpoint_path, model)
 
-	dataset_root = "/home/minsu/dataset/korean_emotional_speech_dataset/wavs/"
+	dataset_root = args.wav_dir
 
 	src_paths = [get_path(dataset_root, "acriil_neu_00000479.wav")]
 	ref_paths = [get_path(dataset_root, "acriil_sad_00002044.wav")]

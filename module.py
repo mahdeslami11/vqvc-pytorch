@@ -77,9 +77,10 @@ class Conv1dResBlock(Conv1d):
 					    ln=ln)
 
 	def forward(self, x):
-		y = x
-		y = y + super(Conv1dResBlock, self).forward(y)
-		return y
+		residual = x
+		x = super(Conv1dResBlock, self).forward(x)
+		x = x + residual
 
+		return x
 
 

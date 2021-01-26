@@ -1,6 +1,8 @@
 from config import Arguments as args
 from utils.path import get_path, create_dir
+
 from data import korean_emotional_speech_dataset
+from data import vctk
 
 import codecs, sys
 import numpy as np
@@ -17,10 +19,11 @@ def prepro_wavs():
 	prepro_path = create_dir(args.prepro_path)
 	mel_path = create_dir(args.prepro_mel_dir)
 	sampling_rate = args.sr
-	sample_frame = args.sample_frame
 
 	if "korean_emotional_speech" in args.dataset_name:
-		korean_emotional_speech_dataset.preprocess(dataset_path, wav_dir, prepro_path, mel_path, sampling_rate, sample_frame, n_workers=args.n_workers)
+		korean_emotional_speech_dataset.preprocess(dataset_path, wav_dir, prepro_path, mel_path, sampling_rate, n_workers=args.n_workers)
+	elif "VCTK" in args.dataset_name:
+		vctk.preprocess(dataset_path, wav_dir, prepro_path, mel_path, sampling_rate, n_workers=args.n_workers)
 	else:
 		print("[ERROR] No Dataset named {}".format(args.dataset_name))
 
@@ -37,18 +40,27 @@ def write_meta():
 
 	meta_path = create_dir(args.prepro_meta_dir)
 
-	file_list = glob.glob(get_path(args.prepro_mel_dir, "*.npy"))
-
 	meta_train = codecs.open(args.prepro_meta_train, mode="w")
 	meta_eval =  codecs.open(args.prepro_meta_eval, mode="w")
+	meta_unseen = codecs.open(args.prepro_meta_unseen, mode="w")
 
-	train_num = int(len(file_list) * args.data_split_ratio[0])
+	if "korean_emotional_speech" in args.dataset_name:
+		seen_files, unseen_files = korean_emotional_speech_dataset.split_unseen_emotions(args.prepro_mel_dir)	
+	elif "VCTK" in args.dataset_name:
+		seen_files, unseen_files = vctk.split_unseen_speakers(args.prepro_mel_dir)
+	else:
+		print("[ERROR] No Dataset named {}".format(args.dataset_name))
 
-	train_file = "\n".join(file_list[:train_num+1])
-	eval_file = "\n".join(file_list[train_num+1:])
+
+	train_num = int(len(seen_files) * args.data_split_ratio[0])
+
+	train_file = "\n".join(seen_files[:train_num+1])
+	eval_file = "\n".join(seen_files[train_num+1:])
+	unseen_file = "\n".join(unseen_files)
 
 	meta_train.writelines(train_file)
 	meta_eval.writelines(eval_file)
+	meta_unseen.writelines(unseen_file)
 
 	print("[LOG] Done: split metadata")
 

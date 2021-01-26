@@ -33,7 +33,7 @@ def preprocess(data_path, prepro_wav_dir, prepro_path, mel_path, sampling_rate, 
 	p = Pool(n_workers)
 
 	prepro_wav_dir = create_dir(prepro_wav_dir)
-	wav_paths=[[filename, prepro_wav_dir, sampling_rate] for filename in list(glob.glob(get_path(data_path, "**", "wav", "*.wav")))]
+	wav_paths=[[filename, prepro_wav_dir, sampling_rate] for filename in list(glob.glob(get_path(data_path, "wav48", "**", "*.wav")))]
 
 	print("\t[LOG] converting wav format...")
 	with tqdm(total=len(wav_paths)) as pbar:
@@ -49,31 +49,30 @@ def preprocess(data_path, prepro_wav_dir, prepro_path, mel_path, sampling_rate, 
 
 			np.save(mel_savepath, mel_spectrogram)
 
-
 	print("Done!")
 
 
-def split_unseen_emotions(prepro_mel_dir):
-	print("[LOG] SEEN emotion: ANGRY(ang), HAPPY(hap), SAD(sad), NEUTRAL(neu) \n\tUNSEEN emotion:  SURPRISE(sur), FEAR(fea), DISGUSTING(dis)")
 
-	seen_emotion_list, unseen_emotion_list = ["ang", "sad", "hap", "neu"], ["sur", "fea", "dis"]
+def split_unseen_speakers(prepro_mel_dir):
 
-	seen_emotion_files, unseen_emotion_files = [], []
+	print("[LOG] 5 UNSEEN speakers:  \n\t p226(Male, English, Surrey) \n\t p256(Male, English, Birmingham) \
+					 \n\t p266(Female, Irish, Athlone) \n\t p297(Female, American, Newyork) \
+					 \n\t p323 (Female, SouthAfrican, Pretoria)\n\t p376(Male, Indian)")
 
-	preprocessed_file_list = glob.glob(get_path(prepro_mel_dir, "*.npy"))	
+	unseen_speaker_list = ["p226", "p256", "p266", "p297", "p323", "p376"]
 
-	for preprocessed_mel_file in preprocessed_file_list:
-		emotion = preprocessed_mel_file.split("/")[-1].split("_")[1]
-		if emotion in seen_emotion_list: 
-			seen_emotion_files.append(preprocessed_mel_file)	
-		elif emotion in unseen_emotion_list:
-			unseen_emotion_files.append(preprocessed_mel_file)
-		else:
-			print("[WARNING] File({}) cannot be identified by emotion label.\n\t(This file will not contain in whole dataset.)".format(preprocessed_mel_file))
+	seen_speaker_files, unseen_speaker_files = [], []
+
+	preprocessed_file_list = glob.glob(get_path(prepro_mel_dir, "*.npy"))
 	
-	return seen_emotion_files, unseen_emotion_files
-
-
+	for preprocessed_mel_file in preprocessed_file_list:
+		speaker = preprocessed_mel_file.split("/")[-1].split("_")[0]
+		if speaker in unseen_speaker_list:
+			unseen_speaker_files.append(preprocessed_mel_file)
+		else:
+			seen_speaker_files.append(preprocessed_mel_file)	
+	
+	return seen_speaker_files, unseen_speaker_files
 
 
 

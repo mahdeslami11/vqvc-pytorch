@@ -8,8 +8,6 @@ class Arguments:
 	"""
 	dataset_name = "VCTK-Corpus"
 	dataset_path = get_path("/home/minsu/hdd/datasets/VCTK/", dataset_name)
-	#dataset_name = "korean_emotional_speech_dataset"
-	#dataset_path = get_path("/home/minsu/hdd/datasets/", dataset_name)
 
 	converted_sample_dir = "results"	
 	prepro_dir = "preprocessed"
@@ -95,7 +93,7 @@ class Arguments:
 	save_checkpoint_step = 5000
 
 	log_tensorboard = True
-	max_training_step = 1000000
+	max_training_step = 60000
 
 	# vocoder setting
 	vocoder = "vocgan"

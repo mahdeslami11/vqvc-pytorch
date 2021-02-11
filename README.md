@@ -34,24 +34,37 @@ An unofficial implementation of [Vector Quantization Voice Conversion(VQVC, D. Y
 
 # Visualization of training
 Train loss visualization
+
 * reconstruction loss
+
 ![recon_loss](./assets/train_reconstruction_loss.jpg)
+
 * commitment loss
+
 ![commitment_loss](./assets/train_commitment_loss.jpg)
+
 * perplexity of codebook
+
 ![perplexity](./assets/train_perplexity.jpg)
+
 * total loss
+
 ![total_loss](./assets/train_total_loss.jpg)
 
 Mel-spectrogram visualization
+
 * Ground-truth(top), reconstructed-mel(top-middle), Contents-mel(bottom-middle), Style-mel(bottom, i.e., encoder output subtracted by code)
+
 ![melspectrogram](./assets/melspectrogram_visualization.jpg)
 
 # Inference results
 * You may hear [audio samples](https://jackson-kang.github.io/opensource_samples/vqvc/).
+
 * Visualization of converted mel-spectrogram
     - source mel(top), reference mel(middle), converted mel(bottom)
+
 ![converted_melspectrogram](./assets/converted_melspectrogram.jpg)
+
 
 # Pretrained models
 1.  [VQVC pretrained model](https://drive.google.com/file/d/1wiG8CyzNhq7dVZG3LZqCJ5bnoPTPS08a/view?usp=sharing)

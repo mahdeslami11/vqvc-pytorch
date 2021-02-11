@@ -21,7 +21,7 @@ def draw_melspectrogram(mel, mel_hat, mel_code, mel_style):
 	return fig
 
 def draw_converted_melspectrogram(src_mel, ref_mel, mel_converted, mel_src_code, mel_src_style, mel_ref_code, mel_ref_style):
-	fig, axis = plt.subplots(5, 1, figsize=(20,30))
+	fig, axis = plt.subplots(7, 1, figsize=(40, 60))
 
 	axis[0].set_title("Source mel")
 	axis[0].imshow(src_mel, origin="lower", aspect="auto")

@@ -94,8 +94,8 @@ class Upsample(nn.Upsample):
 					(S: scale_factor)
 	"""
 
-	def __init__(self, scale_factor=2, mode='nearest', align_corners=False):
-		super(Upsample, self).__init__(scale_factor=scale_factor, mode=mode, align_corners=align_corners)
+	def __init__(self, scale_factor=2, mode='nearest'):
+		super(Upsample, self).__init__(scale_factor=scale_factor, mode=mode)
 
 	def forward(self, x):
 		x = x.transpose(1, 2)

@@ -48,6 +48,7 @@ def convert(model, vocoder, mel_stat, conversion_wav_paths, DEVICE=None):
 
 		mel_mean, mel_std = torch.from_numpy(mel_mean).float().to(DEVICE), torch.from_numpy(mel_std).float().to(DEVICE)
 
+
 		src_mel = de_normalize(src_mel, mel_mean, mel_std)
 		ref_mel = de_normalize(ref_mel, mel_mean, mel_std)
 		mel_converted = de_normalize(mel_converted, mel_mean, mel_std)
@@ -98,8 +99,6 @@ def main(DEVICE):
 if __name__ == "__main__":
 
 	print("[LOG] Start conversion...")
-
-	gpu_ids = sys.argv[1]
 
 	DEVICE = torch.device("cuda" if (torch.cuda.is_available() and args.use_cuda) else "cpu")
 

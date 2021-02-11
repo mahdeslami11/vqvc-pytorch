@@ -46,6 +46,7 @@ class SpeechDataset(dset.Dataset):
 
 		index = np.random.randint(T_mel - self.max_frame_length + 1)		
 		normalized_mel = normalize(mel[index: index + self.max_frame_length], mean=self.mel_mean, std=self.mel_std)
+
 		return normalized_mel, 0
 
 

@@ -52,9 +52,8 @@ class VQEmbeddingEMA(nn.Module):
 	"""
 
 
-	def __init__(self, n_embeddings, embedding_dim, decay=0.999, epsilon=1e-5):
+	def __init__(self, n_embeddings, embedding_dim, epsilon=1e-5):
 		super(VQEmbeddingEMA, self).__init__()
-		self.decay = decay
 		self.epsilon = epsilon
 
 		init_bound = 1 / n_embeddings
@@ -120,13 +119,15 @@ class Decoder(nn.Module):
 		super(Decoder, self).__init__()
 
 		self.res_blocks = nn.Sequential(
-					mm.Conv1d(in_channels, 128, kernel_size=3, bias=False, padding='same'),
+					mm.Conv1d(in_channels, 128, kernel_size=3, 
+								bias=False, padding='same'),
 					mm.Conv1dResBlock(128, 128, kernel_size=3, 
-								bias=True, padding='same'),
+								bias=True, padding='same', activation_fn=nn.ReLU),
 					mm.Conv1dResBlock(128, 128, kernel_size=3, 
-								bias=True, padding='same'),
-					mm.Conv1d(128, 256, kernel_size=2, bias=True, padding='same'),
+								bias=True, padding='same', activation_fn=nn.ReLU),
 					mm.Upsample(scale_factor=2, mode='nearest'),
+					mm.Conv1d(128, 256, kernel_size=2, 
+								bias=True, padding='same', activation_fn=nn.ReLU),
 					mm.Linear(256, mel_channels)					
 		)
 

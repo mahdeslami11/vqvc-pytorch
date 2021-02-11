@@ -34,7 +34,7 @@ class VQVC(nn.Module):
 		self.speaker_emb_reduction = args.speaker_emb_reduction
 
 		self.encoder = Encoder(mel_channels=args.n_mels, z_dim=args.z_dim)   
-		self.codebook = VQEmbeddingEMA(args.n_embeddings, args.z_dim, decay=args.embedding_update_decay)
+		self.codebook = VQEmbeddingEMA(args.n_embeddings, args.z_dim)
 		self.decoder = Decoder(in_channels=args.z_dim, mel_channels=args.n_mels)
 
 	def average_through_time(self, x, dim):
@@ -47,7 +47,7 @@ class VQVC(nn.Module):
 		z_enc = self.encoder(mels)
 
 		# quantization
-		z_quan, commitment_loss, perplexity = self.codebook(normed_z_enc)
+		z_quan, commitment_loss, perplexity = self.codebook(z_enc)
 
 		# speaker emb
 		speaker_emb_ = z_enc - z_quan
@@ -63,7 +63,7 @@ class VQVC(nn.Module):
 		z_enc = self.encoder(mels)
 
 		# contents emb
-		z_quan, commitment_loss, perplexity = self.codebook(normed_z_enc)
+		z_quan, commitment_loss, perplexity = self.codebook(z_enc)
 
 		# speaker emb
 		speaker_emb_ = z_enc - z_quan
@@ -86,14 +86,14 @@ class VQVC(nn.Module):
 		src_style_emb_ = z_src_enc - src_contents
 
 		# ref z_enc
-		z_ref_enc = self.encoder(ref_mel)
+		ref_enc = self.encoder(ref_mel)
 	
 		# ref contents
-		ref_contents, _, _ = self.codebook(z_ref_enc)
-	
+		ref_contents, _, _ = self.codebook(ref_enc)	
+
 		# ref speaker emb
-		ref_speaker_emb_ = z_ref_enc - z_ref_contents
-		ref_speaker_emb = self.average_through_time(speaker_emb_, dim=1)
+		ref_speaker_emb_ = ref_enc - ref_contents
+		ref_speaker_emb = self.average_through_time(ref_speaker_emb_, dim=1)
 
 		# decoder to generate mel
 		mel_converted, mel_src_code, mel_src_style, mel_ref_code, mel_ref_style = self.decoder.convert(src_contents, src_style_emb_, ref_contents, ref_speaker_emb, ref_speaker_emb_)

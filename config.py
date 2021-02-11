@@ -56,18 +56,17 @@ class Arguments:
 		VQVC hyperparameters
 	"""
 
-	n_embeddings = 384		# of codes in VQ-codebook
+	n_embeddings = 256		# of codes in VQ-codebook
 	z_dim=32			# bottleneck dimension
 
 	commitment_cost = 0.01		# commitment cost
-	embedding_update_decay = 0.999	
 
 	norm_epsilon = 1e-4
 	speaker_emb_reduction=1
 
 	warmup_steps = 1000
-	init_lr = 1e-4			# initial learning rate
-	max_lr = 4e-3			# maximum learning rate
+	init_lr = 1e-3			# initial learning rate
+	max_lr = 4e-2			# maximum learning rate
 	gamma = 0.25
 	milestones = [20000]
 

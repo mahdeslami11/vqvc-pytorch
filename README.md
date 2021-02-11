@@ -5,7 +5,10 @@ An unofficial implementation of [Vector Quantization Voice Conversion(VQVC, D. Y
 
 # How-to-run
 1. Install dependencies.
+    python=3.7, [pytorch](https://pytorch.org/)=1.7 
+
     ```
+An unofficial implementation of Vector Quantization Voice Conversion (VQVC).
     pip install -r requirements.txt
     ```
 

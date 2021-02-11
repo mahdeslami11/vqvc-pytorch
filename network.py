@@ -12,19 +12,15 @@ class Encoder(nn.Module):
 			y_: (N, Tx, C_hidden)
 	"""
 
-	def __init__(self, mel_channels, channels, z_dim, kernel_size=3):
+	def __init__(self, mel_channels=80, z_dim=256):
 		super(Encoder, self).__init__()
 		self.encoder = nn.Sequential(
-			mm.Conv1d(mel_channels, channels, kernel_size=kernel_size, 
-					padding='same', bias=False, ln=True, activation_fn=nn.ReLU),
-			mm.Conv1dResBlock(channels, channels, kernel_size, 
-						padding='same', activation_fn=nn.ReLU, ln=True),
-			mm.Conv1dResBlock(channels, channels, kernel_size, 
-						padding='same', activation_fn=nn.ReLU, ln=True),
-			mm.Conv1dResBlock(channels, channels, kernel_size, 
-						padding='same', activation_fn=nn.ReLU, ln=True),
-			
-			mm.Linear(channels, z_dim, bias=False)
+			mm.Conv1d(mel_channels, 64, kernel_size=4, stride=2, padding='same', bias=True, activation_fn=nn.ReLU),
+			mm.Conv1d(64, 256, kernel_size=3, padding='same', bias=True),
+			mm.Conv1d(256, 128, kernel_size=3, padding='same', bias=True),
+			mm.Conv1dResBlock(128, 128, kernel_size=3, padding='same', bias=True, activation_fn=nn.ReLU),
+			mm.Conv1dResBlock(128, 128, kernel_size=3, padding='same', bias=True, activation_fn=nn.ReLU),
+			mm.Conv1d(128, z_dim, kernel_size=1, padding='same', bias=False)
 		)
 
 	def forward(self, mels):
@@ -61,69 +57,53 @@ class VQEmbeddingEMA(nn.Module):
 		self.decay = decay
 		self.epsilon = epsilon
 
-		self.instance_norm = nn.InstanceNorm1d(embedding_dim)
-
 		init_bound = 1 / n_embeddings
 		embedding = torch.Tensor(n_embeddings, embedding_dim)
 		embedding.uniform_(-init_bound, init_bound)
+		embedding = embedding / (torch.norm(embedding, dim=1, keepdim=True) + 1e-4)
 		self.register_buffer("embedding", embedding)
 		self.register_buffer("ema_count", torch.zeros(n_embeddings))
 		self.register_buffer("ema_weight", self.embedding.clone())
 
-	def encode(self, x):
-		M, D = self.embedding.size()
-		x_flat = x.detach().reshape(-1, D)
+	def instance_norm(self, x, dim, epsilon=1e-5):
+		mu = torch.mean(x, dim=dim, keepdim=True)
+		std = torch.std(x, dim=dim, keepdim=True)
 
-		distances = torch.addmm(torch.sum(self.embedding ** 2, dim=1) +
-				torch.sum(x_flat ** 2, dim=1, keepdim=True),
-                                x_flat, self.embedding.t(),
-                                alpha=-2.0, beta=1.0)
+		z = (x - mu) / (std + epsilon)
+		return z
 
-		indices = torch.argmin(distances.float(), dim=-1)
-		quantized = F.embedding(indices, self.embedding)
-		quantized = quantized.view_as(x)
-		return quantized, indices.view(x.size(0), x.size(1))
 
 	def forward(self, x):
 
-		z_enc = x
+		x = self.instance_norm(x, dim=2)
 
-		# instance norm to extract contents information from encoder output
-		x = self.instance_norm(z_enc)
+		embedding = self.embedding / (torch.norm(self.embedding, dim=1, keepdim=True) + 1e-4)
 
-		M, D = self.embedding.size()
+		M, D = embedding.size()
 		x_flat = x.detach().reshape(-1, D)
-		
-		# instance norm to extract contents information from encoder output
 
-		distances = torch.addmm(torch.sum(self.embedding ** 2, dim=1) +
+		distances = torch.addmm(torch.sum(embedding ** 2, dim=1) +
                                 torch.sum(x_flat ** 2, dim=1, keepdim=True),
-                                x_flat, self.embedding.t(),
+                                x_flat, embedding.t(),
                                 alpha=-2.0, beta=1.0)
 
-		indices = torch.argmin(distances.float(), dim=-1)
+		indices = torch.argmin(distances.float(), dim=-1).detach()
 		encodings = F.one_hot(indices, M).float()
 		quantized = F.embedding(indices, self.embedding)
+
 		quantized = quantized.view_as(x)
-
-		if self.training:
-			self.ema_count = self.decay * self.ema_count + (1 - self.decay) * torch.sum(encodings, dim=0)
-
-			n = torch.sum(self.ema_count)
-			self.ema_count = (self.ema_count + self.epsilon) / (n + M * self.epsilon) * n
-
-			dw = torch.matmul(encodings.t(), x_flat)
-			self.ema_weight = self.decay * self.ema_weight + (1 - self.decay) * dw
-			self.embedding = self.ema_weight / self.ema_count.unsqueeze(-1)
 
 		commitment_loss = F.mse_loss(x, quantized.detach())
 
-		quantized = x + (quantized - x).detach()
+		quantized_ = x + (quantized - x).detach()
+		quantized_ = (quantized_ + quantized)/2
 
 		avg_probs = torch.mean(encodings, dim=0)
 		perplexity = torch.exp(-torch.sum(avg_probs * torch.log(avg_probs + 1e-10)))
 
-		return quantized, commitment_loss, perplexity
+		return quantized_, commitment_loss, perplexity
+
+
 
 class Decoder(nn.Module):
 	"""
@@ -136,93 +116,85 @@ class Decoder(nn.Module):
 			mel_reconstructed:	(N, T, C_mel)	
 	"""
 
-	def __init__(self, in_channels, channels, mel_channels, kernel_size=3, norm_epsilon=1e-4, speaker_emb_discount_factor=3):
+	def __init__(self, in_channels, mel_channels=80):
 		super(Decoder, self).__init__()
 
-		self.norm_epsilon = norm_epsilon
-		self.speaker_emb_discount_factor = speaker_emb_discount_factor
-
-		self.conv_layer = mm.Conv1d(in_channels, channels, kernel_size=kernel_size, bias=False)
 		self.res_blocks = nn.Sequential(
-					mm.Conv1dResBlock(channels, channels, 
-							  kernel_size, activation_fn=nn.ReLU, ln=True),
-					mm.Conv1dResBlock(channels, channels, 
-							  kernel_size, activation_fn=nn.ReLU, ln=True),
-					mm.Conv1dResBlock(channels, channels, 
-							  kernel_size, activation_fn=nn.ReLU, ln=True))
+					mm.Conv1d(in_channels, 128, kernel_size=3, bias=False, padding='same'),
+					mm.Conv1dResBlock(128, 128, kernel_size=3, 
+								bias=True, padding='same'),
+					mm.Conv1dResBlock(128, 128, kernel_size=3, 
+								bias=True, padding='same'),
+					mm.Conv1d(128, 256, kernel_size=2, bias=True, padding='same'),
+					mm.Upsample(scale_factor=2, mode='nearest'),
+					mm.Linear(256, mel_channels)					
+		)
 
-		self.project_to_mel_dim = mm.Linear(channels, mel_channels, bias=False)
+		
+	def forward(self, contents, speaker_emb):
 
+		contents = self.norm(contents, dim=2)
+		speaker_emb = self.norm(speaker_emb, dim=2)
 
-	def forward(self, z_enc, z_quan):
+		embedding = contents + speaker_emb
 
-		speaker_emb = z_enc - z_quan
-		code = z_quan
-
-		# expectation over timestep
-		normed_code = code / (torch.norm(code, dim=2, keepdim=True) + self.norm_epsilon)
-
-		speaker_emb = torch.mean(speaker_emb, dim=1, keepdim=True)
-		speaker_emb = speaker_emb / (torch.norm(speaker_emb, dim=2, keepdim=True) + self.norm_epsilon)/self.speaker_emb_discount_factor
-
-		# 1e-4: avoid ZeroDivdedException, 3: intensity of speaker_embedding
-		out = self.conv_layer(normed_code + speaker_emb)
-		out = self.res_blocks(out)
-		mel_reconstructed = self.project_to_mel_dim(out)
+		mel_reconstructed = self.res_blocks(embedding)
 
 		return mel_reconstructed
 
-	def evaluate(self, z_enc, z_quan):
-		speaker_emb = z_enc - z_quan
-		code = z_quan
 
-		normed_code = code / (torch.norm(code, dim=2, keepdim=True) + self.norm_epsilon)
+	def evaluate(self, src_contents, speaker_emb, speaker_emb_):
 
-		speaker_emb = torch.mean(speaker_emb, dim=1, keepdim=True)
-		speaker_emb = speaker_emb / (torch.norm(speaker_emb, dim=2, keepdim=True) + self.norm_epsilon)/self.speaker_emb_discount_factor
+		# normalize the L2-norm of input  vector into 1 on every time-step
+		src_contents = self.norm(src_contents, dim=2)
+		speaker_emb = self.norm(speaker_emb, dim=2)
+		speaker_emb_ = self.norm(speaker_emb_, dim=2)
 
-		# recon mel_hat 
-		out = self.conv_layer(normed_code + speaker_emb)
-		out = self.res_blocks(out)
-		mel_reconstructed = self.project_to_mel_dim(out)
-
-		# only code
-		out = self.conv_layer(normed_code)
-		out = self.res_blocks(out)
-		mel_code = self.project_to_mel_dim(out)
-
-		# only style
-		out = self.conv_layer(z_enc - z_quan)
-		out = self.res_blocks(out)
-		mel_style = self.project_to_mel_dim(out)
-
-		return mel_reconstructed, mel_code, mel_style
-
-
-	def convert(self, src_contents, z_ref_enc, ref_contents):
-		
-
-		normed_src_code = src_contents / (torch.norm(src_contents, dim=2, keepdim=True) + self.norm_epsilon)
-
-		ref_speaker_emb = z_ref_enc - ref_contents
-		ref_speaker_emb = torch.mean(ref_speaker_emb, dim=1, keepdim=True)
-		ref_speaker_emb = ref_speaker_emb / (torch.norm(ref_speaker_emb, dim=2, keepdim=True) + self.norm_epsilon)/self.speaker_emb_discount_factor
+		embedding = src_contents + speaker_emb
 
 		# converted mel_hat 
-		out = self.conv_layer(normed_src_code + ref_speaker_emb)
-		out = self.res_blocks(out)
-		mel_converted = self.project_to_mel_dim(out)
+		mel_converted = self.res_blocks(embedding)
 
 		# only src-code
-		out = self.conv_layer(normed_src_code)
-		out = self.res_blocks(out)
-		mel_src_code = self.project_to_mel_dim(out)
+		mel_src_code = self.res_blocks(src_contents)
 
 		# only ref-style
-		out = self.conv_layer(z_ref_enc - ref_contents)
-		out = self.res_blocks(out)
-		mel_ref_style = self.project_to_mel_dim(out)
+		mel_ref_style = self.res_blocks(speaker_emb_)
 
 		return mel_converted, mel_src_code, mel_ref_style
 
-	
+	def convert(self, src_contents, src_style_emb_, ref_contents, ref_speaker_emb, ref_speaker_emb_):
+		# normalize the L2-norm of input  vector into 1 on every time-step
+		src_contents = self.norm(src_contents, dim=2)
+		src_style_emb_ = self.norm(src_style_emb_, dim=2)
+		ref_contents = self.norm(ref_contents, dim=2)
+		ref_speaker_emb = self.norm(ref_speaker_emb, dim=2)
+		ref_speaker_emb_ = self.norm(ref_speaker_emb_, dim=2)
+
+		embedding = src_contents + ref_speaker_emb
+
+		# converted mel_hat 
+		mel_converted = self.res_blocks(embedding)
+
+		# only src-code
+		mel_src_code = self.res_blocks(src_contents)
+
+		# only src_style_emb_
+		mel_src_style = self.res_blocks(src_style_emb_)
+
+		# only ref-code
+		mel_ref_code = self.res_blocks(ref_contents)	
+
+		# only ref_style_emb_
+		mel_ref_style = self.res_blocks(ref_speaker_emb_)
+
+		return mel_converted, mel_src_code, mel_src_style, mel_ref_code, mel_ref_style
+
+
+
+
+	def norm(self, x, dim, epsilon=1e-4):
+		x_ = x / (torch.norm(x, dim=dim, keepdim = True) + epsilon)
+		return x_
+
+

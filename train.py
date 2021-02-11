@@ -1,3 +1,9 @@
+from config import Arguments as args
+import os
+
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   
+os.environ["CUDA_VISIBLE_DEVICES"]=args.train_visible_devices
+
 import sys, random
 import numpy as np
 
@@ -12,7 +18,7 @@ from config import Arguments as args
 from model import VQVC
 
 from evaluate import evaluate
-from dataset import SpeechDataset
+from dataset import SpeechDataset #, collate_fn
 
 from utils.scheduler import WarmupScheduler
 from utils.checkpoint import load_checkpoint, save_checkpoint
@@ -22,19 +28,14 @@ from utils.vocoder import get_vocgan
 from tqdm import tqdm
 
 
-import os
-os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   
-os.environ["CUDA_VISIBLE_DEVICES"]="7"
-
-
-def train(train_data_loader, eval_data_loader, model, reconstruction_loss, vocoder, optimizer, scheduler, global_step, writer=None, DEVICE=None):
+def train(train_data_loader, eval_data_loader, model, reconstruction_loss, vocoder, mel_stat, optimizer, scheduler, global_step, writer=None, DEVICE=None):
 
 	model.train()
 
 	while global_step < args.max_training_step:
 
 		for step, (mels, _) in tqdm(enumerate(train_data_loader), total=len(train_data_loader), unit='B', ncols=70, leave=False):
-			mels = mels.to(DEVICE)
+			mels = mels.float().to(DEVICE)
 			optimizer.zero_grad()
 
 			mels_hat, commitment_loss, perplexity = model(mels.detach())
@@ -52,7 +53,7 @@ def train(train_data_loader, eval_data_loader, model, reconstruction_loss, vocod
 				save_checkpoint(checkpoint_path=args.model_checkpoint_path, model=model, optimizer=optimizer, scheduler=scheduler, global_step=global_step)
 
 			if global_step % args.eval_step == 0:
-				evaluate(model=model, vocoder=vocoder, eval_data_loader=eval_data_loader, criterion=reconstruction_loss, global_step=global_step, writer=writer, DEVICE=DEVICE)
+				evaluate(model=model, vocoder=vocoder, eval_data_loader=eval_data_loader, criterion=reconstruction_loss, mel_stat=mel_stat, global_step=global_step, writer=writer, DEVICE=DEVICE)
 				model.train()
 
 			if args.log_tensorboard:
@@ -73,6 +74,8 @@ def main(DEVICE):
 	recon_loss = nn.L1Loss().to(DEVICE)
 	vocoder = get_vocgan(ckpt_path=args.vocoder_pretrained_model_path).to(DEVICE)
 
+	mel_stat = torch.tensor(np.load(args.mel_stat_path)).to(DEVICE)
+
 	optimizer = Adam(model.parameters(), lr=args.init_lr)
 	scheduler = WarmupScheduler( optimizer, warmup_epochs=args.warmup_steps,
         			initial_lr=args.init_lr, max_lr=args.max_lr,
@@ -81,8 +84,8 @@ def main(DEVICE):
 	global_step = load_checkpoint(checkpoint_path=args.model_checkpoint_path, model=model, optimizer=optimizer, scheduler=scheduler)
 
 	# load dataset & dataloader
-	train_dataset = SpeechDataset(mem_mode=args.mem_mode, meta_dir=args.prepro_meta_train, dataset_name = args.dataset_name)
-	eval_dataset = SpeechDataset(mem_mode=args.mem_mode, meta_dir=args.prepro_meta_eval, dataset_name=args.dataset_name)
+	train_dataset = SpeechDataset(mem_mode=args.mem_mode, meta_dir=args.prepro_meta_train, dataset_name = args.dataset_name, mel_stat_path=args.mel_stat_path, max_frame_length=args.max_frame_length)
+	eval_dataset = SpeechDataset(mem_mode=args.mem_mode, meta_dir=args.prepro_meta_eval, dataset_name=args.dataset_name, mel_stat_path=args.mel_stat_path, max_frame_length=args.max_frame_length)
 
 	train_data_loader = DataLoader(dataset=train_dataset, batch_size=args.train_batch_size, shuffle=True, drop_last=True, pin_memory=True, num_workers=args.n_workers)
 	eval_data_loader = DataLoader(dataset=eval_dataset, batch_size=args.train_batch_size, shuffle=False, pin_memory=True, drop_last=True)
@@ -91,15 +94,12 @@ def main(DEVICE):
 	writer = Writer(args.model_log_path) if args.log_tensorboard else None		
 
 	# train the model!
-	train(train_data_loader, eval_data_loader, model, recon_loss, vocoder, optimizer, scheduler, global_step, writer, DEVICE)
+	train(train_data_loader, eval_data_loader, model, recon_loss, vocoder, mel_stat, optimizer, scheduler, global_step, writer, DEVICE)
 
 
 if __name__ == "__main__":
 
 	print("[LOG] Start training...")
-
-	gpu_ids = sys.argv[1]
-
 	DEVICE = torch.device("cuda" if (torch.cuda.is_available() and args.use_cuda) else "cpu")
 
 	seed = args.seed

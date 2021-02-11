@@ -83,4 +83,23 @@ class Conv1dResBlock(Conv1d):
 
 		return x
 
+class Upsample(nn.Upsample):
+	"""
+		Upsampling via interporlation
 
+		Args:
+			x:	(N, T, C)
+		Returns:
+			y:	(N, S * T, C)
+					(S: scale_factor)
+	"""
+
+	def __init__(self, scale_factor=2, mode='nearest', align_corners=False):
+		super(Upsample, self).__init__(scale_factor=scale_factor, mode=mode, align_corners=align_corners)
+
+	def forward(self, x):
+		x = x.transpose(1, 2)
+		x = super(Upsample, self).forward(x)
+		x = x.transpose(1, 2)
+
+		return x 

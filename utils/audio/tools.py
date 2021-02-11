@@ -25,21 +25,21 @@ _stft = stft.TacotronSTFT(
     args.n_mels, args.sr, args.mel_fmin, args.mel_fmax)
 
 
-def load_wav_to_torch(full_path):
+def load_wav_to_numpy(full_path):
     sampling_rate, data = read(full_path)
     return data.astype(np.float32), sampling_rate
 
 
-def get_mel(filename, trim_silence=False):
-    audio, sampling_rate = load_wav_to_torch(filename)
+def get_mel(filename, trim_silence=False, frame_length=1024, hop_length=256, top_db=10):
+    audio, sampling_rate = load_wav_to_numpy(filename)
 
     if sampling_rate != _stft.sampling_rate:
         raise ValueError("{} SR doesn't match target SR {}".format(
             sampling_rate, _stft.sampling_rate))
     audio_norm = audio / args.max_wav_value
-
     if trim_silence:
-        audio_norm, _ = librosa.effects.trim(audio_norm)
+        audio_norm = audio_norm[200:-200]
+        audio_norm, idx = librosa.effects.trim(audio_norm, top_db=top_db, frame_length=frame_length, hop_length=hop_length)
 
     audio_norm = torch.FloatTensor(audio_norm)
     audio_norm = audio_norm.unsqueeze(0)
@@ -49,7 +49,6 @@ def get_mel(filename, trim_silence=False):
     energy = torch.squeeze(energy, 0).detach().cpu().numpy()
 
     return melspec, energy
-
 
 def get_mel_from_wav(audio):
     sampling_rate = args.sr
@@ -65,7 +64,6 @@ def get_mel_from_wav(audio):
 
 
     return melspec, energy
-
 
 
 def inv_mel_spec(mel, out_filename, griffin_iters=60):

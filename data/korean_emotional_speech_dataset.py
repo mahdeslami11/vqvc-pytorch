@@ -8,6 +8,7 @@ from multiprocessing import Pool
 
 from scipy.io.wavfile import write
 import librosa, ffmpeg
+from sklearn.preprocessing import StandardScaler
 
 
 def job(wav_filename):
@@ -29,8 +30,9 @@ def job(wav_filename):
 			raise
 
 
-def preprocess(data_path, prepro_wav_dir, prepro_path, mel_path, sampling_rate, n_workers=10):
+def preprocess(data_path, prepro_wav_dir, prepro_path, mel_path, sampling_rate, n_workers=10, filter_length=1024, hop_length=256, top_db=10):
 	p = Pool(n_workers)
+	mel_scaler = StandardScaler(copy=False)
 
 	prepro_wav_dir = create_dir(prepro_wav_dir)
 	wav_paths=[[filename, prepro_wav_dir, sampling_rate] for filename in list(glob.glob(get_path(data_path, "**", "wav", "*.wav")))]
@@ -45,10 +47,11 @@ def preprocess(data_path, prepro_wav_dir, prepro_path, mel_path, sampling_rate, 
 		for wav_filename in tqdm(glob.glob(get_path(prepro_wav_dir, "*.wav"))):
 			mel_filename = wav_filename.split("/")[-1].replace("wav", "npy")
 			mel_savepath = get_path(mel_path, mel_filename)
-			mel_spectrogram, _ = get_mel(wav_filename, trim_silence=True)
+			mel_spectrogram, _ = get_mel(wav_filename, trim_silence=True, frame_length=filter_length, hop_length=hop_length, top_db=top_db)
 
+			mel_scaler.partial_fit(mel_spectrogram)
 			np.save(mel_savepath, mel_spectrogram)
-
+	np.save(get_path(prepro_path, "mel_stats.npy"), np.array([mel_scaler.mean_, mel_scaler.scale_]))
 
 	print("Done!")
 

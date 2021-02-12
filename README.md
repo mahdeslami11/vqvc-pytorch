@@ -5,14 +5,17 @@ An unofficial implementation of [Vector Quantization Voice Conversion(VQVC, D. Y
 
 # How-to-run
 1. Install dependencies.
-    python=3.7, [pytorch](https://pytorch.org/)=1.7 
+    * python=3.7
+    * [pytorch](https://pytorch.org/)=1.7 
 
     ```
-       pip install -r requirements.txt
+    pip install -r requirements.txt
     ```
 
 2. Download dataset and pretrained VocGAN model.
     * Please download [VCTK dataset](https://datashare.ed.ac.uk/handle/10283/3443) and edit ```dataset_path``` in ```config.py```.
+    * Download [VocGAN pretrained model](https://github.com/Jackson-Kang/VQVC-Pytorch#pretrained-models)
+
 3. Preprocess 
     * preprocess mel-spectrogram via following command:
     ```
@@ -20,6 +23,7 @@ An unofficial implementation of [Vector Quantization Voice Conversion(VQVC, D. Y
     ```
     * first argument: mel-preprocessing
     * second argument: metadata split (You may change the portion of samples used on train/eval via ```data_split_ratio``` in ```config.py```)
+
 4. Train the model
     ```
     python train.py
@@ -27,6 +31,7 @@ An unofficial implementation of [Vector Quantization Voice Conversion(VQVC, D. Y
     * In ```config.py```, you may edit ```train_visible_device``` to choose GPU for training.
     * Same as paper, 60K steps are enough.
     * Training the model spends only 30 minutes.
+
 5. Voice conversion
     * After training, point the source and reference speech for voice conversion. (You may edit ```src_paths``` and ```ref_paths``` in ```conversion.py```.)
     * As a result of conversion, you may check samples in directory ```results```.

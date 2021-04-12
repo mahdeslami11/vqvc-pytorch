@@ -74,7 +74,7 @@ class VQEmbeddingEMA(nn.Module):
 
 	def forward(self, x):
 
-		x = self.instance_norm(x, dim=2)
+		x = self.instance_norm(x, dim=1)
 
 		embedding = self.embedding / (torch.norm(self.embedding, dim=1, keepdim=True) + 1e-4)
 

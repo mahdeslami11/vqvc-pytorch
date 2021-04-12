@@ -15,8 +15,8 @@ import scipy.signal as sps
 import librosa
 import os
 
-import utils.audio.stft as stft
-from utils.audio.audio_preprocessing import griffin_lim
+from . import stft as stft
+from .audio_preprocessing import griffin_lim
 from config import Arguments as args
 
 

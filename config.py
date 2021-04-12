@@ -7,7 +7,7 @@ class Arguments:
 		path configurations
 	"""
 	dataset_name = "VCTK-Corpus"
-	dataset_path = get_path("/home/minsu/hdd/datasets/VCTK/", dataset_name)
+	dataset_path = get_path("/home/minsu/dataset/VCTK/", dataset_name)
 
 	converted_sample_dir = "results"	
 	prepro_dir = "preprocessed"
@@ -83,7 +83,7 @@ class Arguments:
 
 	data_split_ratio = [0.95, 0.05]		# [train, evaluation] in 0 ~ 1 range
 
-	train_visible_devices = "6"
+	train_visible_devices = "7"
 	conversion_visible_devices = "7"
 
 	train_batch_size = 120
@@ -97,7 +97,6 @@ class Arguments:
 
 	# vocoder setting
 	vocoder = "vocgan"
-	#vocoder_pretrained_model_name = "vocgan_kss_pretrained_model_epoch_4500.pt"
-	vocoder_pretrained_model_name = "vctk_pretrained_model_3180.pt"
+	vocoder_pretrained_model_name = "vocgan_universal_pretrained_model_epoch_1280.pt"
 	vocoder_pretrained_model_path = get_path("./vocoder", "{}", "pretrained_models", vocoder_pretrained_model_name).format(vocoder)
 

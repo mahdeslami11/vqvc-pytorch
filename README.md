@@ -38,30 +38,6 @@ ONE-SHOT VOICE CONVERSION BY VECTOR QUANTIZATION
     python conversion.py
     ```
 
-# Visualization of training
-Train loss visualization
-
-* reconstruction loss
-
-![recon_loss](./assets/train_reconstruction_loss.jpg)
-
-* commitment loss
-
-![commitment_loss](./assets/train_commitment_loss.jpg)
-
-* perplexity of codebook
-
-![perplexity](./assets/train_perplexity.jpg)
-
-* total loss
-
-![total_loss](./assets/train_total_loss.jpg)
-
-Mel-spectrogram visualization
-
-* Ground-truth(top), reconstructed-mel(top-middle), Contents-mel(bottom-middle), Style-mel(bottom, i.e., encoder output subtracted by code)
-
-![melspectrogram](./assets/melspectrogram_visualization.jpg)
 
 # Inference results
 * You may hear [audio samples](https://jackson-kang.github.io/opensource_samples/vqvc/).

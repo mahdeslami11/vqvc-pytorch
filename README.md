@@ -1,6 +1,6 @@
 # VQVC-Pytorch
-
-An unofficial implementation of [Vector Quantization Voice Conversion(VQVC, D. Y. Wu et. al., 2020)](https://ieeexplore.ieee.org/document/9053854)
+ONE-SHOT VOICE CONVERSION BY VECTOR QUANTIZATION
+# Hesam Najafi
 
 ![model](./assets/model_architecture.png)
 

@@ -1,9 +1,7 @@
 # VQVC-Pytorch
 ONE-SHOT VOICE CONVERSION BY VECTOR QUANTIZATION
 # Hesam Najafi
-
-![model](./assets/model_architecture.png)
-
+# 401141140111021
 # How-to-run
 1. Install dependencies.
     * python=3.7
@@ -73,7 +71,7 @@ Mel-spectrogram visualization
 
 ![converted_melspectrogram](./assets/converted_melspectrogram.jpg)
 
-
+ 
 # Pretrained models
 1.  [VQVC pretrained model](https://drive.google.com/file/d/1wiG8CyzNhq7dVZG3LZqCJ5bnoPTPS08a/view?usp=sharing)
 * download pretrained VQVC model and place it in ```ckpts/VCTK-Corpus/```
@@ -90,5 +88,3 @@ Mel-spectrogram visualization
 * [One-shot Voice Conversion by Vector Quantization](https://ieeexplore.ieee.org/document/9053854) (D. Y. Wu et. al., 2020)
 * [VocGAN implementation](https://github.com/rishikksh20/VocGAN) by rishikksh20
 * [NVIDIA's preprocessing method](https://github.com/NVIDIA/tacotron2/blob/fc0cf6a89a47166350b65daa1beaa06979e4cddf/stft.py)
-
-

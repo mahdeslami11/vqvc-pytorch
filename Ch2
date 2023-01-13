@@ -1,0 +1,8 @@
+A typical example of Voice Conversion (VC) task is to change
+the voice of a source speaker to the voice of a target speaker
+without changing the linguistic information. To imitate the
+target speaker, a VC system should modify the tone, accent,
+and pronunciation of the voice of the source speaker, and this
+task can also be formulated as a style transfer problem. In
+practice, this technology can be used in many applications
+such as entertainment, creativity industry, and virtual implantation

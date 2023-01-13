@@ -92,38 +92,3 @@ Mel-spectrogram visualization
 * [NVIDIA's preprocessing method](https://github.com/NVIDIA/tacotron2/blob/fc0cf6a89a47166350b65daa1beaa06979e4cddf/stft.py)
 
 
-1.target
-
-
-
-
-
-
-2.
-
-EXP_DIR: res101
-TRAIN:
-  HAS_RPN: True
-  BBOX_NORMALIZE_TARGETS_PRECOMPUTED: True
-  RPN_POSITIVE_OVERLAP: 0.7
-  RPN_BATCHSIZE: 256
-  PROPOSAL_METHOD: gt
-  BG_THRESH_LO: 0.0
-  DISPLAY: 20
-  BATCH_SIZE: 128
-  WEIGHT_DECAY: 0.0001
-  DOUBLE_BIAS: False
-  LEARNING_RATE: 0.001
-TEST:
-  HAS_RPN: True
-POOLING_SIZE: 7
-POOLING_MODE: align
-CROP_RESIZE_WITH_MAX_POOL: False
-
-
-
-
-
-
-
-

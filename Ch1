@@ -1,0 +1,8 @@
+we propose a vector quantization (VQ) based
+one-shot voice conversion (VC) approach without any supervision
+on speaker label. We model the content embedding
+as a series of discrete codes and take the difference between
+quantize-before and quantize-after vector as the speaker embedding.
+We show that this approach has a strong ability to
+disentangle the content and speaker information with reconstruction
+loss only, and one-shot VC is thus achieved

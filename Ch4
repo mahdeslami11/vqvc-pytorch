@@ -1,0 +1,10 @@
+We proposed a novel VQ-based one-shot VC with a selflearned
+speaker representation. The disentanglement experiments
+and visualization show that the VQVC learns a
+meaningful embedding space without any supervision, and
+an ablation study on the quantization and IN shows that the
+normalization on codebooks Q and placing the IN before the
+quantization achieve the best result. Further, we perform VC
+to unseen speakers with only one utterance, and subjective
+evaluations showed good results in terms of similarity to
+target speakers.
